@@ -2,7 +2,12 @@ import {createStore} from "vuex";
 
 const store = createStore(
     {
-        state : {},
+        state : {
+            user : {
+                data : {name: "Stas"},
+                token : null
+            }
+        },
         getters : {},
         actions : {},
         mutations : {},
