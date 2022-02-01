@@ -4,6 +4,7 @@ import Login from "../views/Login.vue";
 import Register from "../views/Register.vue";
 import DefaultLayout from "../components/DefaultLayout.vue";
 import Surveys from "../views/Surveys.vue";
+import store from "../store";
 
 const routes = [
     {
