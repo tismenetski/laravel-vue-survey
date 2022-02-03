@@ -3,13 +3,34 @@
         <template v-slot:header>
             <div class="flex items-center justify-between">
                 <h1 class="text-3xl font-bold text-gray-900">
-                    {{model.id ? model.title : "Create a Survey"}}
+                    {{route.params.id ? model.title : "Create a Survey"}}
 <!--                 Since this component is meant for edidting an existing survey or creating a new one wy figure out by the model constant the we have in our script tag.
    if the route params have an survey id and we found the survey it the store we approach this page as an edit survey but if not we assume that we create a new survey-->
                 </h1>
+                <button
+                    v-if="route.params.id"
+                    type="button"
+                    @click="deleteSurvey()"
+                    class="py-2 px-3 text-white bg-red-500 rounded-md hover:bg-red-600"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 -mt-1 inline-block"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                    Delete Survey
+                </button>
             </div>
         </template>
-        <form @submit.prevent="saveSurvey">
+        <div v-if="surveyLoading" class="flex justify-center">Loading...</div>
+        <form v-else @submit.prevent="saveSurvey">
             <div class="shadow sm:rounded-md sm:overflow-hidden">
                 <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
                     <!--         Image Start           -->
@@ -18,7 +39,7 @@
                             Image
                         </label>
                         <div class="mt-1 flex items-center">
-                            <img v-if="model.image"  :src="model.image" :alt="model.title" class="w-64 h-48 object-contain">
+                            <img v-if="model.image_url"  :src="model.image_url" :alt="model.title" class="w-64 h-48 object-contain">
                             <span v-else class="flex items-center justify-center h-12 w-12 rounded-full overflow-hidden bg-gray-100">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -179,26 +200,52 @@
 import PageComponent from '../components/PageComponent.vue'
 import QuestionEditor from '../components/editor/QuestionEditor.vue'
 import {v4 as uuidv4} from 'uuid'
-import {ref} from "vue";
+import {computed, ref, watch} from "vue";
 import store from '../store'
 import {useRoute} from 'vue-router'
-
+import {useRouter} from "vue-router";
 
 const route = useRoute();
+const router = useRouter();
 
+const surveyLoading = computed(() => store.state.currentSurvey.loading);
 let model = ref({
     title : "",
     status : false,
     description : null,
-    image: null,
+    image_url : null,
     expire_date : null,
     questions : []
 })
 
+// Watching store state variable
+watch(
+    () => store.state.currentSurvey.data,
+    (newVal, oldVal) => {
+        model.value = {
+            ...JSON.parse(JSON.stringify(newVal)),
+            status: newVal.status !== "draft",
+
+        }
+    }
+)
+
 if (route.params.id){
-    model.value = store.state.surveys.find(
-        (s) => s.id === parseInt(route.params.id)
-    )
+  store.dispatch('getSurvey', route.params.id);
+}
+
+function onImageChoose(ev) {
+
+    const file = ev.target.files[0];
+    const reader = new FileReader();
+
+
+    reader.onload = () => {
+        model.value.image = reader.result;
+
+        model.value.image_url = reader.result;
+    }
+    reader.readAsDataURL(file);
 }
 
 
@@ -228,6 +275,21 @@ function questionChange(question) {
         }
         return q;
     })
+}
+
+function saveSurvey() {
+    store.dispatch('saveSurvey', model.value)
+        .then(({data}) =>{
+            router.push({name : "SurveyView", params : {id : data.data.id}})
+        });
+}
+
+function deleteSurvey(){
+    if (confirm('Are You sure you really want to delete the survey?')){
+        store.dispatch('deleteSurvey',model.value.id).then(() => {
+            router.push({name : "Surveys"})
+        })
+    }
 }
 </script>
 
