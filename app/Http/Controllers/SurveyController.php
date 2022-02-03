@@ -6,9 +6,13 @@ use App\Http\Resources\SurveyResource;
 use App\Models\Survey;
 use App\Http\Requests\StoreSurveyRequest;
 use App\Http\Requests\UpdateSurveyRequest;
+use App\Models\SurveyQuestion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 
 class SurveyController extends Controller
@@ -41,8 +45,15 @@ class SurveyController extends Controller
             $relativePath = $this->saveImage($data['image']);
             $data['image'] = $relativePath;
         }
+
         $survey = Survey::create($data);
 
+
+        // Create new questions
+        foreach ($data['questions'] as $question ) {
+            $question['survey_id'] = $survey->id;
+            $this->createQuestion($question);
+        }
 
         return new SurveyResource($survey);
     }
@@ -88,6 +99,38 @@ class SurveyController extends Controller
         }
 
         $survey->update($data);
+
+
+        // get the ids of existing questions as plain array
+            $existingIds = $survey->questions()->pluck('id')->toArray();
+
+        // get the ids of new questions as plain array
+            $newIds = Arr::pluck($data['questions'], 'id');
+
+        //find questions to delete
+            $toDelete = array_diff($existingIds,$newIds);
+        //find questions to add
+            $toAdd = array_diff($newIds, $existingIds);
+        // Delete question needed to be deleted
+            SurveyQuestion::destroy($toDelete);
+        // Add new questions
+            foreach ($data['questions'] as $question) {
+                if (in_array($question['id'], $toAdd)) {
+                    $question['survey_id'] = $survey->id;
+                    $this->createQuestion($question);
+                }
+            }
+
+        // Update existing questions
+            $questionMap = collect($data['questions'])->keyBy('id');
+
+            foreach ($survey->questions as $question) {
+                if (isset($questionMap[$question->id])) {
+                    $this->updateQuestion($question, $questionMap[$question->id]);
+                }
+            }
+
+
 
         return new SurveyResource($survey);
     }
@@ -151,5 +194,51 @@ class SurveyController extends Controller
 
         return $relativePath;
 
+    }
+
+    private function createQuestion($data)
+    {
+        if (is_array($data['data'])) {
+            $data['data'] = json_encode($data['data']);
+
+            $validator = Validator::make($data,[
+                'question' => 'required|string',
+               'type' => ['required',Rule::in([
+                   Survey::TYPE_CHECKBOX,
+                   Survey::TYPE_RADIO,
+                   Survey::TYPE_SELECT,
+                   Survey::TYPE_TEXT,
+                   Survey::TYPE_TEXTAREA
+               ])],
+                'description' => 'nullable|string',
+                'data' => 'present',
+                'survey_id' => 'exists:App\Models\Survey,id'
+            ]);
+
+            return SurveyQuestion::create($validator->validated());
+        }
+    }
+
+    private function updateQuestion(SurveyQuestion $question, $data)
+    {
+        if (is_array($data['data'])){
+            $data['data'] = json_encode($data['data']);
+        }
+
+        $validator = Validator::make($data,[
+            'id' => 'exists:App\Models\SurveyQuestion,id',
+            'question' => 'required|string',
+            'type' => ['required', Rule::in([
+                Survey::TYPE_CHECKBOX,
+                Survey::TYPE_RADIO,
+                Survey::TYPE_SELECT,
+                Survey::TYPE_TEXT,
+                Survey::TYPE_TEXTAREA
+            ])],
+            'description' => 'nullable|string',
+            'data' => 'present'
+
+        ]);
+        return $question->update($validator->validated());
     }
 }
