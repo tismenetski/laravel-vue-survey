@@ -11,8 +11,9 @@
 
            </div>
         </template>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-            <survey-list-item v-for="survey in surveys" :key="survey.id" :survey="survey" @delete="deleteSurvey(survey)"  />
+        <div v-if="surveys.loading" class="flex justify-center">Loading...</div>
+        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+            <survey-list-item v-for="(survey,index) in surveys.data" :key="survey.id" :survey="survey" class="opacity-0 animate-fade-in-down" :style="{animationDelay :`${index * 0.1}s` }" @delete="deleteSurvey(survey)"  />
         </div>
     </page-component>
 <!--    This uses the page component, page component have prop named title , so we pass the title, everything between the page-component start and end will be the content of slot   -->
@@ -24,7 +25,7 @@ import {computed} from "vue";
 import PageComponent from '../components/PageComponent.vue'
 import SurveyListItem from "../components/SurveyListItem.vue";
 
-const surveys = computed(() => store.state.surveys.data);
+const surveys = computed(() => store.state.surveys);
 
 function deleteSurvey(survey) {
     if (confirm('Are you sure you want to delete this survey? Operation cannot be undone')) {

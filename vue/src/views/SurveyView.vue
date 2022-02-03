@@ -30,7 +30,7 @@
             </div>
         </template>
         <div v-if="surveyLoading" class="flex justify-center">Loading...</div>
-        <form v-else @submit.prevent="saveSurvey">
+        <form v-else @submit.prevent="saveSurvey" class="animate-fade-in-down">
             <div class="shadow sm:rounded-md sm:overflow-hidden">
                 <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
                     <!--         Image Start           -->
@@ -280,6 +280,10 @@ function questionChange(question) {
 function saveSurvey() {
     store.dispatch('saveSurvey', model.value)
         .then(({data}) =>{
+            store.commit('notify',{
+                type : 'success',
+                message : 'Survey was successfully updated'
+            })
             router.push({name : "SurveyView", params : {id : data.data.id}})
         });
 }
