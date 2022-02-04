@@ -14,6 +14,10 @@ const store = createStore(
                 loading : false,
                 data : {}
             },
+            dashboard : {
+                loading : false,
+                data  : {}
+            },
             surveys : {loading : false,
                 links  : [],
                 data : []},
@@ -96,6 +100,36 @@ const store = createStore(
                     commit('setSurveys' , res.data);
                     return res;
                 })
+            },
+            getSurveyBySlug({commit}, slug) {
+                commit('setCurrentSurveyLoading', true);
+                return axiosClient.get(`/survey-by-slug/${slug}`)
+                    .then((res) => {
+                        commit('setCurrentSurvey', res.data);
+                        commit('setCurrentSurveyLoading' , false);
+                        return res;
+
+                    }).catch((err) => {
+                        commit('setCurrentSurveyLoading' , false);
+                        throw err;
+                    })
+            },
+            saveSurveyAnswer({commit}, {surveyId,answers}) {
+                return axiosClient.post(`/survey/${surveyId}/answer` , {answers});
+
+            },
+
+            getDashboardData({commit}) {
+                commit('dashboardLoading', true);
+                return axiosClient.get('/dashboard')
+                    .then((res) => {
+                        commit('dashboardLoading', false);
+                        commit('setDashboardData' , res.data);
+                        return res;
+                    }).catch((err) => {
+                        commit('dashboardLoading', false);
+                        return err;
+                    })
             }
         },
 
@@ -140,7 +174,14 @@ const store = createStore(
                 setTimeout(() => {
                     state.notification.show = false;
                 },3000)
+            },
+            dashboardLoading(state,loading) {
+                state.dashboard.loading = loading;
+            },
+            setDashboardData(state,data) {
+                state.dashboard.data = data;
             }
+
             // deleteSurvey(state,id) {
             //     state.surveys.data.filter((s) => s.id !== id);
             // }
