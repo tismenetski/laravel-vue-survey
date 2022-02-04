@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SurveyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +24,14 @@ Route::middleware('auth:sanctum')->group(function (){
     Route::post('/logout', [AuthController::class,'logout']);
 
     Route::resource('/survey', SurveyController::class); // When defining Route::resource we say that our controller have all the CRUD function in that controller
+
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 });
+
+Route::get('/survey-by-slug/{survey:slug}' , [SurveyController::class,'showForGuest']);
+
+Route::post('/survey/{survey}/answer', [SurveyController::class,'storeAnswer']);
+
 
 
 
