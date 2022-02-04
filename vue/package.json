@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "npm run prod",
+    "start": "node index.js"
   },
   "dependencies": {
     "@headlessui/vue": "^1.4.3",
